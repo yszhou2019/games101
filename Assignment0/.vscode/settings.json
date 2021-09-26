@@ -1,0 +1,7 @@
+{
+    "cmake.sourceDirectory": "${workspaceFolder}/src",
+    "files.associations": {
+        "*.txt": "log",
+        "ostream": "cpp"
+    }
+}
