@@ -29,6 +29,7 @@ int main(){
     std::cout << "Example of scalar multiply \n";
     std::cout << v * 3.0f << std::endl;
     std::cout << 2.0f * v << std::endl;
+    std::cout << v.dot(w) << std::endl;
 
     // Example of matrix
     std::cout << "Example of matrix \n";
@@ -45,10 +46,13 @@ int main(){
     std::cout << i * j << std::endl;
     std::cout << i * v  << std::endl;
     
-    // matrix add i + j
-    // matrix scalar multiply i * 2.0
-    // matrix multiply i * j
-    // matrix multiply vector i * v
+    // HomeWork
+    Eigen::Matrix3f trans;
+    float sin45 = std::sin(45.0/180.0*acos(-1));
+    trans << sin45, -sin45, 1.0, sin45, sin45, 2.0, 0.0, 0.0, 1.0;
+    Eigen::Vector3f point(2.0, 1.0, 1.0);
+    std::cout << "after transform \n";
+    std::cout << trans * point << std::endl;
 
     return 0;
 }
