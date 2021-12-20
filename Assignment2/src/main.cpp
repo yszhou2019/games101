@@ -25,6 +25,10 @@ Eigen::Matrix4f get_view_matrix(Eigen::Vector3f eye_pos)
 Eigen::Matrix4f get_model_matrix(float rotation_angle)
 {
     Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
+    float cos_a = std::cos(rotation_angle/180.0*acos(-1));
+    float sin_a = std::sin(rotation_angle/180.0*acos(-1));
+    model << cos_a, -sin_a, 0, 0, sin_a, cos_a, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1;
+
     return model;
 }
 
@@ -33,7 +37,14 @@ Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio, float z
     // TODO: Copy-paste your implementation from the previous assignment.
     Eigen::Matrix4f projection;
 
-    return projection;
+    projection << zNear, 0, 0, 0, 0, zNear, 0, 0, 0, 0, zNear + zFar, -zNear * zFar, 0, 0, 1, 0;
+    float top = std::abs(zNear) * std::tan(eye_fov/2);
+    float right = top * aspect_ratio;
+    Eigen::Matrix4f ortho1, ortho2;
+    ortho1 << 1/right, 0, 0, 0, 0, 1/top, 0, 0, 0, 0, 2/(zNear - zFar), 0, 0, 0, 0, 1;
+    ortho2 << 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, -(zNear+zFar)/2, 0, 0, 0, 1;
+
+    return ortho1*ortho2*projection;
 }
 
 int main(int argc, const char** argv)
