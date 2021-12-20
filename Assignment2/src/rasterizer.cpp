@@ -40,7 +40,7 @@ auto to_vec4(const Eigen::Vector3f& v3, float w = 1.0f)
 }
 
 
-static bool insideTriangle(int x, int y, const Vector3f* _v)
+static bool insideTriangle(float x, float y, const Vector3f* _v)
 {   
     // TODO : Implement this function to check if the point (x, y) is inside the triangle represented by _v[0], _v[1], _v[2]
     // cross product z value
@@ -124,17 +124,56 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
     ex = std::max(t.v[0].x(), std::max(t.v[1].x(), t.v[2].x()));
     ey = std::max(t.v[0].y(), std::max(t.v[1].y(), t.v[2].y()));
     
-    for(int x = sx; x < ex; x++){
-        for(int y = sy; y < ey; y++){
-            if(insideTriangle(x, y, t.v)){
-                auto[alpha, beta, gamma] = computeBarycentric2D(x, y, t.v);
-                float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
-                float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
-                z_interpolated *= w_reciprocal;
+    std::vector<Eigen::Vector2f> pos
+    {
+        {0.25, 0.25},
+        {0.75, 0.25},
+        {0.25, 0.75},
+        {0.75, 0.75},
+    };
+
+    bool MSAA = true;
+    if(MSAA){
+        for(int x = sx; x < ex; x++){
+            for(int y = sy; y < ey; y++){
+                float min_depth = FLT_MAX;
+                int cnt = 0;
+                // compute 4 depth
+                for(int i = 0; i < 4; i++){
+                    if(insideTriangle(x + pos[i][0], y + pos[i][1], t.v)){
+                        auto[alpha, beta, gamma] = computeBarycentric2D(x + pos[i][0], y + pos[i][1], t.v);
+                        float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
+                        float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
+                        z_interpolated *= w_reciprocal;
+                        min_depth = std::min(min_depth, z_interpolated);
+                        cnt++;
+                    }
+                }
+                // compute Z value
                 int index = get_index(x, y);
-                if(z_interpolated < depth_buf[index]){
-                    depth_buf[index] = z_interpolated;
-                    frame_buf[index] = t.getColor();
+                // if closer, update color
+                if(cnt && min_depth < depth_buf[index]){
+                    depth_buf[index] = min_depth;
+                    frame_buf[index] = t.getColor() * cnt / 4.0;
+                }
+            }
+        }
+    }
+    else{
+        for(int x = sx; x < ex; x++){
+            for(int y = sy; y < ey; y++){
+                if(insideTriangle(x + 0.5, y + 0.5, t.v)){
+                    auto[alpha, beta, gamma] = computeBarycentric2D(x, y, t.v);
+                    float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
+                    float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
+                    z_interpolated *= w_reciprocal;
+                    // compute Z value
+                    int index = get_index(x, y);
+                    // if closer, update color
+                    if(z_interpolated < depth_buf[index]){
+                        depth_buf[index] = z_interpolated;
+                        frame_buf[index] = t.getColor();
+                    }
                 }
             }
         }
